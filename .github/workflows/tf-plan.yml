@@ -18,20 +18,26 @@ on:
         description: "ARN of the AWS IAM role to assume."
         required: true
 
+# Define the script as a variable
+env:
+  HELLO_WORLD_SCRIPT: |
+    const { context, GitHub } = require('@actions/github');
+    const github = new GitHub(process.env.GITHUB_TOKEN);
+    
+    github.issues.createComment({
+      owner: context.repo.owner,
+      repo: context.repo.repo,
+      issue_number: context.issue.number,
+      body: 'Hello, World'
+    });
+
+
 jobs:
   comment:
     runs-on: ubuntu-20.04
     steps:
-      - name: Comment the Plan
+      - name: Hello World
         uses: actions/github-script@v6
-        if: ${{ github.event_name == 'pull_request' }}
-        env:
-          ACTOR: "${{ github.actor }}"
-          ENV: "${{ matrix.path }}"
-          EVENT_NAME: "${{ github.event_name }}"
-          PLAN_OUTCOME: "${{ steps.plan.outcome }}"
-          WORKFLOW: "${{ github.workflow }}"
         with:
-          script: |
-            const runScript = require('./.github/scripts/commenter.js');
-            await runScript({ github, context, core, process });
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: ${{ env.HELLO_WORLD_SCRIPT }}

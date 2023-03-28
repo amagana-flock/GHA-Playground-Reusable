@@ -2,10 +2,12 @@ name: "Terraform Plan and Apply Action"
 
 on:
   workflow_call:
-    inputs:
-      GITHUB_TOKEN:
-        type: string
-        required: true
+
+# permission can be added at job level or workflow level
+permissions:
+  id-token: write # This is required for requesting the JWT
+  contents: read # This is required for actions/checkout
+  pull-requests: write
 
 # Define the script as a variable
 env:

@@ -33,5 +33,5 @@ jobs:
           WORKFLOW: "${{ github.workflow }}"
         with:
           script: |
-            const runScript = require('./.github/github-script-wrapper.js');
+            const runScript = require('./.github/scripts/commenter.js');
             await runScript({ github, context, core, process });

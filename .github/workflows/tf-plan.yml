@@ -21,12 +21,12 @@ on:
 # Define the script as a variable
 env:
   HELLO_WORLD_SCRIPT: |
-    github.issues.createComment({
+    github.rest.issues.createComment({
+      issue_number: context.issue.number,
       owner: context.repo.owner,
       repo: context.repo.repo,
-      issue_number: context.issue.number,
-      body: 'Hello, World'
-    });
+      body: output
+    })
 
 
 jobs:

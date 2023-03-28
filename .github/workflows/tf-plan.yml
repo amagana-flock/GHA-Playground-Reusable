@@ -48,41 +48,6 @@ jobs:
           - prod
 
     steps:
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v1
-        with:
-          terraform_version: 1.0.11
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          role-to-assume: ${{ inputs.is_gov_cloud == true && format('arn:aws-us-gov:iam::230929603:role/{0}', inputs.role_to_assume) || format('arn:aws:iam::380235110861:role/{0}', inputs.role_to_assume) }}
-          aws-region: ${{ inputs.is_gov_cloud == true && 'us-gov-west-1' || inputs.aws_region }}
-
-      - name: Initialize Terraform
-        shell: bash
-        run: |
-          cd infrastructure/${{ matrix.path }}/${{ inputs.aws_region }}
-          terraform init -input=false
-      - name: Plan Terraform
-        id: plan
-        continue-on-error: true
-        shell: bash
-        run: |
-          cd infrastructure/${{ matrix.path }}/${{ inputs.aws_region }}
-          terraform plan -input=false -no-color -out=tfplan && terraform show -no-color tfplan
-      - name: Reformat Plan
-        shell: bash
-        run: |
-          echo '${{ steps.plan.outputs.stdout || steps.plan.outputs.stderr }}' \
-          | sed -E 's/^([[:space:]]+)([-+])/\2\1/g' > plan.txt
-      - name: Put Plan in Env Var
-        shell: bash
-        run: |
-          PLAN=$(cat plan.txt)
-          echo "PLAN<<EOF" >> $GITHUB_ENV
-          echo "$PLAN" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
       - name: Comment the Plan
         uses: actions/github-script@v6
         if: ${{ github.event_name == 'pull_request' }}

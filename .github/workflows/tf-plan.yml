@@ -19,34 +19,8 @@ on:
         required: true
 
 jobs:
-  lint:
-    name: Pre Checks
+  comment:
     runs-on: ubuntu-20.04
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v2
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v1
-        with:
-          terraform_version: 1.0.11
-
-      - name: Run terraform fmt check
-        run: terraform fmt -check -diff -recursive
-
-      - name: Run terraform validate check
-        run: terraform validate -no-color
-
-  plan:
-    runs-on: ubuntu-20.04
-    needs: lint
-    strategy:
-      fail-fast: false
-      matrix:
-        path:
-          - dev
-          - prod
-
     steps:
       - name: Comment the Plan
         uses: actions/github-script@v6
@@ -58,7 +32,6 @@ jobs:
           PLAN_OUTCOME: "${{ steps.plan.outcome }}"
           WORKFLOW: "${{ github.workflow }}"
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const script = require('./.github/scripts/tf-plan-commenter.js');
-            await script({github, context, process});
+            const runScript = require('./.github/github-script-wrapper.js');
+            await runScript({ github, context, core, process });

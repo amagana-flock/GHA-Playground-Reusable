@@ -2,6 +2,10 @@ name: "Terraform Plan and Apply Action"
 
 on:
   workflow_call:
+    inputs:
+      GITHUB_TOKEN:
+        type: string
+        required: true
 
 # Define the script as a variable
 env:

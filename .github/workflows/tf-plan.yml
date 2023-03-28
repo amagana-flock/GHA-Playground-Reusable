@@ -1,0 +1,50 @@
+name: Terraform Reusable Workflow
+
+on:
+  workflow_call:
+
+jobs:
+  plan:
+    runs-on: ubuntu-20.04
+    defaults:
+      run:
+        working-directory: infrastructure/dev/us-east-1
+    steps:
+      - uses: actions/checkout@v3
+      - uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.0.11
+
+      - name: Terraform fmt
+        id: fmt
+        run: terraform fmt -check
+
+      - name: Terraform Init
+        id: init
+        run: terraform init
+
+      - name: Terraform Validate
+        id: validate
+        run: terraform validate -no-color
+
+      - name: Terraform Plan
+        id: plan
+        run: terraform plan -no-color
+        continue-on-error: true
+
+      - uses: actions/github-script@v6
+        if: github.event_name == 'pull_request'
+        env:
+          FMT: "${{ steps.fmt.outcome }}"
+          VALIDATE: "${{ steps.validate.outputs.stdout }}"
+          VALIDATE_OUTCOME: "${{ steps.validate.outcome }}"
+          INIT: "${{ steps.init.outcome }}"
+          PLAN: "${{ steps.plan.outputs.stdout }}"
+          PLAN_OUTCOME: "${{ steps.plan.outcome }}"
+          ACTOR: "${{ github.actor }}"
+          EVENT_NAME: "${{ github.event_name }}"
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const script = require('./.github/scripts/commenter.js');
+            await script({github, context, process});

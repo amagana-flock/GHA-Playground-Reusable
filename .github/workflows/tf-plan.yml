@@ -23,9 +23,6 @@ on:
         description: "Terraform version"
         required: false
         default: "1.0.11"
-    secrets:
-      ssh-key:
-        required: true
 
 # permission can be added at job level or workflow level
 permissions:
@@ -51,9 +48,6 @@ jobs:
           mask-aws-account-id: false
 
       - uses: actions/checkout@v3
-      - uses: webfactory/ssh-agent@v0.7.0
-        with:
-          ssh-private-key: ${{ secrets.ssh-key }}
 
       - name: Initialize Terraform
         shell: bash

@@ -75,10 +75,10 @@ jobs:
             const noChange = terraformPlan.includes("No changes.");
             
             const output = `#### Terraform Plan ( ${{ matrix.path }} ) ${resultEmoji} \`${{ steps.plan.outcome }}\`
-            ${noChange ? "__No changes detected.__" : `
+            ${noChange ? "__No changes detected.__\n" : `
             <details><summary>Show Plan</summary>
             
-            <!-- terraform-plan-${{ matrix.path }}-->
+            <!-- terraform-plan-dev-->
             
             \`\`\`\n
             ${terraformPlan}

@@ -9,17 +9,6 @@ permissions:
   contents: read # This is required for actions/checkout
   pull-requests: write
 
-# Define the script as a variable
-env:
-  HELLO_WORLD_SCRIPT: |
-    github.rest.issues.createComment({
-      issue_number: context.issue.number,
-      owner: context.repo.owner,
-      repo: context.repo.repo,
-      body: 'Hello, world!'
-    })
-
-
 jobs:
   comment:
     runs-on: ubuntu-20.04
@@ -28,4 +17,50 @@ jobs:
         uses: actions/github-script@v6
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: ${{ env.HELLO_WORLD_SCRIPT }}
+          script: |
+            // 1. Retrieve existing bot comments for the PR
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            })
+            
+            const botComment = comments.find(comment => {
+              return comment.user.type === 'Bot' && comment.body.includes('terraform-plan-${{ matrix.path }}')
+            })
+            
+            // 2. Prepare format of the comment
+            const resultEmoji = process.env.PLAN_OUTCOME === "success" ? "✅" : "❌";
+            const terraformPlan = process.env.PLAN;
+            const noChange = terraformPlan.includes("No changes.");
+            
+            const output = `#### Terraform Plan ( ${{ matrix.path }} ) ${resultEmoji} \`${{ steps.plan.outcome }}\`
+            ${noChange ? "__No changes detected.__" : `
+            <details><summary>Show Plan</summary>
+            
+            <!-- terraform-plan-${{ matrix.path }}-->
+            
+            \`\`\`\n
+            ${terraformPlan}
+            \`\`\`
+            
+            </details>
+            `}
+            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Environment: \`${{ matrix.path }}\`, Workflow: \`${{ github.workflow }}\`*`;
+            
+            // 3. If we have a comment, update it, otherwise create a new one
+            if (botComment) {
+              github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: output
+              })
+            } else {
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: output
+              })
+            }

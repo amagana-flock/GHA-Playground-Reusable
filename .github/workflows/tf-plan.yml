@@ -51,8 +51,12 @@ jobs:
           echo "EOF" >> $GITHUB_OUTPUT
           echo "PLAN_OUTCOME=${{ steps.plan.outcome }}" >> $GITHUB_OUTPUT
 
-      - name: Hello World
+      - name: Comment the Plan
         uses: actions/github-script@v6
+        if: ${{ github.event_name == 'pull_request' }}
+        env:
+          PLAN: ${{ steps.plan_info.outputs.PLAN }}
+          PLAN_OUTCOME: ${{ steps.plan_info.outputs.PLAN_OUTCOME }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
@@ -62,29 +66,28 @@ jobs:
               repo: context.repo.repo,
               issue_number: context.issue.number,
             })
-            
             const botComment = comments.find(comment => {
               return comment.user.type === 'Bot' && comment.body.includes('terraform-plan-dev')
             })
-            
             // 2. Prepare format of the comment
             const resultEmoji = process.env.PLAN_OUTCOME === "success" ? "✅" : "❌";
-            const noChange = false;
+            const terraformPlan = process.env.PLAN;
+            const noChange = terraformPlan.includes("No changes.");
             
-            const output = `#### Terraform Plan ( dev ) ${resultEmoji} \`${{ steps.plan.outcome }}\`
+            const output = `#### Terraform Plan ( ${{ matrix.path }} ) ${resultEmoji} \`${{ steps.plan.outcome }}\`
             ${noChange ? "__No changes detected.__" : `
             <details><summary>Show Plan</summary>
             
-            <!-- terraform-plan-dev-->
+            <!-- terraform-plan-${{ matrix.path }}-->
             
             \`\`\`\n
-            ${process.env.PLAN}
+            ${terraformPlan}
             \`\`\`
             
             </details>
             `}
-            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Environment: \`dev\`, Workflow: \`${{ github.workflow }}\`*`;
-            
+            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Environment: \`${{ matrix.path }}\`, Workflow: \`${{ github.workflow }}\`*`;
+                                                                                    
             // 3. If we have a comment, update it, otherwise create a new one
             if (botComment) {
               github.rest.issues.updateComment({

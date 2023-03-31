@@ -2,6 +2,30 @@ name: "Terraform Plan and Apply Action"
 
 on:
   workflow_call:
+    inputs:
+      aws_account:
+        description: "AWS account number."
+        required: false
+        type: string
+        default: "380235110861"
+      aws_region:
+        type: string
+        description: "AWS region."
+        required: false
+        default: "us-east-1"
+      role_to_assume:
+        type: string
+        description: "ARN of the AWS IAM role to assume."
+        required: false
+        default: "arn:aws:iam::380235110861:role/terraform-ro-oidc-role"
+      terraform_version:
+        type: string
+        description: "Terraform version"
+        required: false
+        default: "1.0.11"
+    secrets:
+      ssh-key:
+        required: true
 
 # permission can be added at job level or workflow level
 permissions:

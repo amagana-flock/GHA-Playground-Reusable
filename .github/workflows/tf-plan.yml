@@ -70,7 +70,7 @@ jobs:
             // 2. Prepare format of the comment
             const resultEmoji = process.env.PLAN_OUTCOME === "success" ? "✅" : "❌";
             const terraformPlan = process.env.PLAN;
-            const noChange = terraformPlan.includes("No changes.");
+            const noChange = process.env.PLAN.includes("No changes.");
             
             const output = `#### Terraform Plan ( dev ) ${resultEmoji} \`${{ steps.plan.outcome }}\`
             ${noChange ? "__No changes detected.__" : `

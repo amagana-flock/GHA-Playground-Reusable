@@ -13,6 +13,55 @@ jobs:
   comment:
     runs-on: ubuntu-20.04
     steps:
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v1
+        with:
+          terraform_version: ${{ inputs.terraform_version }}
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1-node16
+        with:
+          role-to-assume: ${{ inputs.role_to_assume }}
+          role-session-name: ${{ env.GITHUB_RUN_ID }}
+          aws-region: ${{ inputs.aws_region }}
+          mask-aws-account-id: false
+
+      - uses: actions/checkout@v3
+      - uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.ssh-key }}
+
+      - name: Initialize Terraform
+        shell: bash
+        run: |
+          cd infrastructure/${{ matrix.path }}/${{ inputs.aws_region }}
+          terraform init -input=false
+
+      - name: Plan Terraform
+        id: plan
+        continue-on-error: true
+        shell: bash
+        run: |
+          cd infrastructure/${{ matrix.path }}/${{ inputs.aws_region }}
+          terraform plan -input=false -no-color -out=tfplan && terraform show -no-color tfplan
+      ## this step reformats the Terraform plan output by moving the - or + signs to the beginning of each line, before any whitespace characters, and saves the reformatted output in a file named plan.txt.
+
+      - name: Reformat Plan
+        shell: bash
+        run: |
+          echo "${{ steps.plan.outputs.stdout || steps.plan.outputs.stderr }}" \
+          | sed -E 's/^([[:space:]]+)([-+])/\2\1/g' > plan.txt
+
+      - name: Put Plan in Env Var
+        shell: bash
+        id: plan_info
+        run: |
+          PLAN=$(cat plan.txt)
+          echo "PLAN<<EOF" >> $GITHUB_OUTPUT
+          echo "$PLAN" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo "PLAN_OUTCOME=${{ steps.plan.outcome }}" >> $GITHUB_OUTPUT
+
       - name: Hello World
         uses: actions/github-script@v6
         with:

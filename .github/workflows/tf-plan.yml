@@ -23,7 +23,7 @@ jobs:
       - name: Initialize Terraform
         shell: bash
         run: |
-          cd infrastructure/${{ matrix.path }}/${{ inputs.aws_region }}
+          cd infrastructure/dev/us-east-1
           terraform init -input=false
 
       - name: Plan Terraform
@@ -31,7 +31,7 @@ jobs:
         continue-on-error: true
         shell: bash
         run: |
-          cd infrastructure/${{ matrix.path }}/${{ inputs.aws_region }}
+          cd infrastructure/dev/us-east-1
           terraform plan -input=false -no-color -out=tfplan && terraform show -no-color tfplan
       ## this step reformats the Terraform plan output by moving the - or + signs to the beginning of each line, before any whitespace characters, and saves the reformatted output in a file named plan.txt.
 
@@ -64,7 +64,7 @@ jobs:
             })
             
             const botComment = comments.find(comment => {
-              return comment.user.type === 'Bot' && comment.body.includes('terraform-plan-${{ matrix.path }}')
+              return comment.user.type === 'Bot' && comment.body.includes('terraform-plan-dev')
             })
             
             // 2. Prepare format of the comment
@@ -72,11 +72,11 @@ jobs:
             const terraformPlan = process.env.PLAN;
             const noChange = terraformPlan.includes("No changes.");
             
-            const output = `#### Terraform Plan ( ${{ matrix.path }} ) ${resultEmoji} \`${{ steps.plan.outcome }}\`
+            const output = `#### Terraform Plan ( dev ) ${resultEmoji} \`${{ steps.plan.outcome }}\`
             ${noChange ? "__No changes detected.__" : `
             <details><summary>Show Plan</summary>
             
-            <!-- terraform-plan-${{ matrix.path }}-->
+            <!-- terraform-plan-dev-->
             
             \`\`\`\n
             ${terraformPlan}
@@ -84,7 +84,7 @@ jobs:
             
             </details>
             `}
-            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Environment: \`${{ matrix.path }}\`, Workflow: \`${{ github.workflow }}\`*`;
+            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Environment: \`dev\`, Workflow: \`${{ github.workflow }}\`*`;
             
             // 3. If we have a comment, update it, otherwise create a new one
             if (botComment) {

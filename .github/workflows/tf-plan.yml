@@ -1,106 +1,11 @@
-name: "Terraform Plan and Apply Action"
+name: Hello, World
 
 on:
-  workflow_call:
-
-# permission can be added at job level or workflow level
-permissions:
-  id-token: write # This is required for requesting the JWT
-  contents: read # This is required for actions/checkout
-  pull-requests: write
+  workflow_dispatch:
 
 jobs:
-  comment:
-    runs-on: ubuntu-20.04
+  hello:
+    runs-on: ubuntu-latest
     steps:
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v1
-        with:
-          terraform_version: 1.0.11
-
-      - uses: actions/checkout@v3
-
-      - name: Initialize Terraform
-        shell: bash
-        run: |
-          cd infrastructure/dev/us-east-1
-          terraform init -input=false
-
-      - name: Plan Terraform
-        id: plan
-        continue-on-error: true
-        shell: bash
-        run: |
-          cd infrastructure/dev/us-east-1
-          terraform plan -input=false -no-color -out=tfplan && terraform show -no-color tfplan
-
-      ## this step reformats the Terraform plan output by moving the - or + signs to the beginning of each line, before any whitespace characters, and saves the reformatted output in a file named plan.txt.
-      - name: Reformat Plan
-        shell: bash
-        run: |
-          echo "${{ steps.plan.outputs.stdout || steps.plan.outputs.stderr }}" \
-          | sed -E 's/^([[:space:]]+)([-+])/\2\1/g' > plan.txt
-
-      - name: Put Plan in Env Var
-        shell: bash
-        id: plan_info
-        run: |
-          PLAN=$(cat plan.txt)
-          echo "PLAN<<EOF" >> $GITHUB_OUTPUT
-          echo "$PLAN" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-          echo "PLAN_OUTCOME=${{ steps.plan.outcome }}" >> $GITHUB_OUTPUT
-
-      - name: Comment the Plan
-        uses: actions/github-script@v6
-        if: ${{ github.event_name == 'pull_request' }}
-        env:
-          PLAN: ${{ steps.plan_info.outputs.PLAN }}
-          PLAN_OUTCOME: ${{ steps.plan_info.outputs.PLAN_OUTCOME }}
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            // 1. Retrieve existing bot comments for the PR
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-            })
-            const botComment = comments.find(comment => {
-              return comment.user.type === 'Bot' && comment.body.includes('terraform-plan-dev')
-            })
-            // 2. Prepare format of the comment
-            const resultEmoji = process.env.PLAN_OUTCOME === "success" ? "✅" : "❌";
-            const terraformPlan = process.env.PLAN;
-            const noChange = terraformPlan.includes("No changes.");
-            
-            const output = `#### Terraform Plan ( ${{ matrix.path }} ) ${resultEmoji} \`${{ steps.plan.outcome }}\`
-            ${noChange ? "__No changes detected.__\n" : `
-            <details><summary>Show Plan</summary>
-            
-            <!-- terraform-plan-dev-->
-            
-            \`\`\`\n
-            ${terraformPlan}
-            \`\`\`
-            
-            </details>
-            `}
-            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Environment: \`${{ matrix.path }}\`, Workflow: \`${{ github.workflow }}\`*`;
-                                                                                    
-            // 3. If we have a comment, update it, otherwise create a new one
-            if (botComment) {
-              github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: botComment.id,
-                body: output
-              })
-            } else {
-              github.rest.issues.createComment({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                body: output
-              })
-            }
+      - name: Say Hello
+        run: echo "Hello, World"

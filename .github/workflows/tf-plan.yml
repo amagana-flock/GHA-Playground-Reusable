@@ -1,18 +1,48 @@
-name: Hello, World
+name: Terraform
 
 on:
-  workflow_dispatch:
   workflow_call:
+    inputs:
+      environment:
+        required: true
+        default: 'dev'
+      action:
+        required: true
+        default: 'plan'
 
-# permission can be added at job level or workflow level
-permissions:
-  id-token: write # This is required for requesting the JWT
-  contents: read # This is required for actions/checkout
-  pull-requests: write
+  pull_request:
+    branches: [ main ]
+    types: [ opened, synchronize ]
+
+  push:
+    branches:
+      - main
 
 jobs:
-  hello:
+  terraform:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Say Hello
-        run: echo "Hello, World"
+      - uses: actions/checkout@v2
+
+      - name: Terraform ${{ github.event.inputs.action }} - ${{ github.event.inputs.environment }}
+        if: ${{ github.event_name == 'workflow_call' || github.event_name == 'pull_request' || github.event_name == 'push' }}
+        env:
+          TF_CLI_ARGS: "-input=false"
+          TF_VAR_environment: ${{ github.event.inputs.environment }}
+        run: |
+          cd infrastructure/dev/us-east-1
+          terraform ${{ github.event.inputs.action }}
+          if [ "${{ github.event.inputs.action }}" == "apply" ]; then
+            terraform apply -auto-approve
+          fi
+
+      - name: Request approval for Terraform apply in Production
+        if: ${{ github.event_name == 'pull_request' && github.event.inputs.environment == 'prod' && github.event.inputs.action == 'apply' }}
+        uses: peter-evans/create-pull-request@v3.11.1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: 'Requesting approval for Terraform apply in Production'
+          title: 'Requesting approval for Terraform apply in Production'
+          branch: 'terraform-apply-prod'
+          body: 'Please review and approve the Terraform apply in Production.'

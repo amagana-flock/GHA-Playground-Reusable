@@ -2,6 +2,7 @@ name: Hello, World
 
 on:
   workflow_dispatch:
+  workflow_call:
 
 # permission can be added at job level or workflow level
 permissions:
